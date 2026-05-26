@@ -11,6 +11,21 @@ export async function GET(request: Request) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error) {
+      // Check if this is an invited user who hasn't set up their password yet
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (user) {
+        const isInvited = !!user.invited_at;
+        const setupComplete = user.user_metadata?.setup_complete === true;
+
+        // Invited users who haven't completed setup go to password page
+        if (isInvited && !setupComplete) {
+          return NextResponse.redirect(`${origin}/setup`);
+        }
+      }
+
       return NextResponse.redirect(`${origin}${next}`);
     }
   }

@@ -46,6 +46,19 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // Invited users who haven't set a password get redirected to setup
+  // (except if they're already on the setup page)
+  if (user && isProtected && pathname !== "/setup") {
+    const isInvited = !!(user as any).invited_at;
+    const setupComplete = (user as any).user_metadata?.setup_complete === true;
+
+    if (isInvited && !setupComplete) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/setup";
+      return NextResponse.redirect(url);
+    }
+  }
+
   return supabaseResponse;
 }
 
