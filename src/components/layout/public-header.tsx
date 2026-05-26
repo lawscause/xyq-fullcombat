@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { NAV_ITEMS } from "@/lib/constants/routes";
+import { MobileMenu } from "./mobile-menu";
 
 export function PublicHeader() {
   return (
@@ -27,25 +28,7 @@ export function PublicHeader() {
           </Link>
         </nav>
 
-        {/* Mobile menu trigger — implement with sheet/dialog */}
-        <button
-          className="sm:hidden rounded-md p-2 hover:bg-accent"
-          aria-label="Open menu"
-        >
-          <svg
-            className="h-5 w-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M4 6h16M4 12h16M4 18h16"
-            />
-          </svg>
-        </button>
+        <MobileMenu />
       </div>
     </header>
   );

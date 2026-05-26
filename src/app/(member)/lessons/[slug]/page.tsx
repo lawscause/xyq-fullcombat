@@ -83,9 +83,9 @@ export default async function LessonPage({ params }: LessonPageProps) {
       </div>
 
       {/* Video */}
-      {videoMedia?.cloudflare_stream_id && (
+      {videoMedia && (videoMedia.cloudflare_stream_id || videoMedia.url) && (
         <VideoPlayer
-          videoId={videoMedia.cloudflare_stream_id}
+          videoId={videoMedia.cloudflare_stream_id || videoMedia.url!}
           title={lesson.title}
         />
       )}

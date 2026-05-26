@@ -62,17 +62,14 @@ $$ LANGUAGE sql SECURITY DEFINER STABLE;
 -- PROFILES
 -- ============================================================
 
--- Users can read their own profile
 CREATE POLICY "Users can view own profile"
   ON profiles FOR SELECT
   USING (auth.uid() = id);
 
--- Users can update their own profile
 CREATE POLICY "Users can update own profile"
   ON profiles FOR UPDATE
   USING (auth.uid() = id);
 
--- Admins/instructors can view all profiles
 CREATE POLICY "Staff can view all profiles"
   ON profiles FOR SELECT
   USING (get_user_role(auth.uid()) IN ('admin', 'instructor'));
@@ -81,32 +78,40 @@ CREATE POLICY "Staff can view all profiles"
 -- USER ROLES
 -- ============================================================
 
--- Users can see their own roles
 CREATE POLICY "Users can view own roles"
   ON user_roles FOR SELECT
   USING (auth.uid() = user_id);
 
--- Only admins can manage roles
-CREATE POLICY "Admins can manage roles"
-  ON user_roles FOR ALL
+CREATE POLICY "Admins can select roles"
+  ON user_roles FOR SELECT
+  USING (get_user_role(auth.uid()) = 'admin');
+
+CREATE POLICY "Admins can insert roles"
+  ON user_roles FOR INSERT
+  WITH CHECK (get_user_role(auth.uid()) = 'admin');
+
+CREATE POLICY "Admins can update roles"
+  ON user_roles FOR UPDATE
+  USING (get_user_role(auth.uid()) = 'admin');
+
+CREATE POLICY "Admins can delete roles"
+  ON user_roles FOR DELETE
   USING (get_user_role(auth.uid()) = 'admin');
 
 -- ============================================================
 -- MEMBERSHIPS
 -- ============================================================
 
--- Users can view their own membership
 CREATE POLICY "Users can view own membership"
   ON memberships FOR SELECT
   USING (auth.uid() = user_id);
 
--- Admins can view all memberships
 CREATE POLICY "Admins can view all memberships"
   ON memberships FOR SELECT
   USING (get_user_role(auth.uid()) = 'admin');
 
 -- ============================================================
--- CATEGORIES & TAGS (public read)
+-- CATEGORIES & TAGS (public read, staff write)
 -- ============================================================
 
 CREATE POLICY "Anyone authenticated can read categories"
@@ -117,20 +122,34 @@ CREATE POLICY "Anyone authenticated can read tags"
   ON tags FOR SELECT
   USING (auth.uid() IS NOT NULL);
 
--- Admin/instructor can manage
-CREATE POLICY "Staff can manage categories"
-  ON categories FOR ALL
+CREATE POLICY "Staff can insert categories"
+  ON categories FOR INSERT
+  WITH CHECK (get_user_role(auth.uid()) IN ('admin', 'instructor'));
+
+CREATE POLICY "Staff can update categories"
+  ON categories FOR UPDATE
   USING (get_user_role(auth.uid()) IN ('admin', 'instructor'));
 
-CREATE POLICY "Staff can manage tags"
-  ON tags FOR ALL
+CREATE POLICY "Staff can delete categories"
+  ON categories FOR DELETE
+  USING (get_user_role(auth.uid()) IN ('admin', 'instructor'));
+
+CREATE POLICY "Staff can insert tags"
+  ON tags FOR INSERT
+  WITH CHECK (get_user_role(auth.uid()) IN ('admin', 'instructor'));
+
+CREATE POLICY "Staff can update tags"
+  ON tags FOR UPDATE
+  USING (get_user_role(auth.uid()) IN ('admin', 'instructor'));
+
+CREATE POLICY "Staff can delete tags"
+  ON tags FOR DELETE
   USING (get_user_role(auth.uid()) IN ('admin', 'instructor'));
 
 -- ============================================================
 -- LESSONS
 -- ============================================================
 
--- Published lessons visible based on access level
 CREATE POLICY "Members can view published lessons"
   ON lessons FOR SELECT
   USING (
@@ -142,15 +161,13 @@ CREATE POLICY "Members can view published lessons"
     )
   );
 
--- Staff can view all lessons (including drafts)
 CREATE POLICY "Staff can view all lessons"
   ON lessons FOR SELECT
   USING (get_user_role(auth.uid()) IN ('admin', 'instructor'));
 
--- Staff can manage lessons
-CREATE POLICY "Staff can manage lessons"
+CREATE POLICY "Staff can insert lessons"
   ON lessons FOR INSERT
-  USING (get_user_role(auth.uid()) IN ('admin', 'instructor'));
+  WITH CHECK (get_user_role(auth.uid()) IN ('admin', 'instructor'));
 
 CREATE POLICY "Staff can update lessons"
   ON lessons FOR UPDATE
@@ -179,8 +196,20 @@ CREATE POLICY "Members can view lesson media"
     )
   );
 
-CREATE POLICY "Staff can manage lesson media"
-  ON lesson_media FOR ALL
+CREATE POLICY "Staff can view all lesson media"
+  ON lesson_media FOR SELECT
+  USING (get_user_role(auth.uid()) IN ('admin', 'instructor'));
+
+CREATE POLICY "Staff can insert lesson media"
+  ON lesson_media FOR INSERT
+  WITH CHECK (get_user_role(auth.uid()) IN ('admin', 'instructor'));
+
+CREATE POLICY "Staff can update lesson media"
+  ON lesson_media FOR UPDATE
+  USING (get_user_role(auth.uid()) IN ('admin', 'instructor'));
+
+CREATE POLICY "Staff can delete lesson media"
+  ON lesson_media FOR DELETE
   USING (get_user_role(auth.uid()) IN ('admin', 'instructor'));
 
 -- ============================================================
@@ -198,8 +227,48 @@ CREATE POLICY "Members can view transcripts"
     )
   );
 
-CREATE POLICY "Staff can manage transcripts"
-  ON transcripts FOR ALL
+CREATE POLICY "Staff can view all transcripts"
+  ON transcripts FOR SELECT
+  USING (get_user_role(auth.uid()) IN ('admin', 'instructor'));
+
+CREATE POLICY "Staff can insert transcripts"
+  ON transcripts FOR INSERT
+  WITH CHECK (get_user_role(auth.uid()) IN ('admin', 'instructor'));
+
+CREATE POLICY "Staff can update transcripts"
+  ON transcripts FOR UPDATE
+  USING (get_user_role(auth.uid()) IN ('admin', 'instructor'));
+
+CREATE POLICY "Staff can delete transcripts"
+  ON transcripts FOR DELETE
+  USING (get_user_role(auth.uid()) IN ('admin', 'instructor'));
+
+-- ============================================================
+-- LESSON TAGS & INSTRUCTORS (junction tables)
+-- ============================================================
+
+CREATE POLICY "Anyone authenticated can read lesson tags"
+  ON lesson_tags FOR SELECT
+  USING (auth.uid() IS NOT NULL);
+
+CREATE POLICY "Staff can insert lesson tags"
+  ON lesson_tags FOR INSERT
+  WITH CHECK (get_user_role(auth.uid()) IN ('admin', 'instructor'));
+
+CREATE POLICY "Staff can delete lesson tags"
+  ON lesson_tags FOR DELETE
+  USING (get_user_role(auth.uid()) IN ('admin', 'instructor'));
+
+CREATE POLICY "Anyone authenticated can read lesson instructors"
+  ON lesson_instructors FOR SELECT
+  USING (auth.uid() IS NOT NULL);
+
+CREATE POLICY "Staff can insert lesson instructors"
+  ON lesson_instructors FOR INSERT
+  WITH CHECK (get_user_role(auth.uid()) IN ('admin', 'instructor'));
+
+CREATE POLICY "Staff can delete lesson instructors"
+  ON lesson_instructors FOR DELETE
   USING (get_user_role(auth.uid()) IN ('admin', 'instructor'));
 
 -- ============================================================
@@ -214,21 +283,67 @@ CREATE POLICY "Staff can view all seminars"
   ON seminars FOR SELECT
   USING (get_user_role(auth.uid()) IN ('admin', 'instructor'));
 
-CREATE POLICY "Staff can manage seminars"
-  ON seminars FOR ALL
+CREATE POLICY "Staff can insert seminars"
+  ON seminars FOR INSERT
+  WITH CHECK (get_user_role(auth.uid()) IN ('admin', 'instructor'));
+
+CREATE POLICY "Staff can update seminars"
+  ON seminars FOR UPDATE
+  USING (get_user_role(auth.uid()) IN ('admin', 'instructor'));
+
+CREATE POLICY "Staff can delete seminars"
+  ON seminars FOR DELETE
+  USING (get_user_role(auth.uid()) IN ('admin', 'instructor'));
+
+-- ============================================================
+-- SEMINAR RECORDINGS
+-- ============================================================
+
+CREATE POLICY "Members can view seminar recordings"
+  ON seminar_recordings FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM seminars
+      WHERE seminars.id = seminar_recordings.seminar_id
+      AND published = TRUE
+      AND has_active_membership(auth.uid())
+    )
+  );
+
+CREATE POLICY "Staff can view all seminar recordings"
+  ON seminar_recordings FOR SELECT
+  USING (get_user_role(auth.uid()) IN ('admin', 'instructor'));
+
+CREATE POLICY "Staff can insert seminar recordings"
+  ON seminar_recordings FOR INSERT
+  WITH CHECK (get_user_role(auth.uid()) IN ('admin', 'instructor'));
+
+CREATE POLICY "Staff can update seminar recordings"
+  ON seminar_recordings FOR UPDATE
+  USING (get_user_role(auth.uid()) IN ('admin', 'instructor'));
+
+CREATE POLICY "Staff can delete seminar recordings"
+  ON seminar_recordings FOR DELETE
   USING (get_user_role(auth.uid()) IN ('admin', 'instructor'));
 
 -- ============================================================
 -- EVENTS
 -- ============================================================
 
--- All authenticated users can view events
 CREATE POLICY "Authenticated users can view events"
   ON events FOR SELECT
   USING (auth.uid() IS NOT NULL);
 
-CREATE POLICY "Staff can manage events"
-  ON events FOR ALL
+CREATE POLICY "Staff can insert events"
+  ON events FOR INSERT
+  WITH CHECK (get_user_role(auth.uid()) IN ('admin', 'instructor'));
+
+CREATE POLICY "Staff can update events"
+  ON events FOR UPDATE
+  USING (get_user_role(auth.uid()) IN ('admin', 'instructor'));
+
+CREATE POLICY "Staff can delete events"
+  ON events FOR DELETE
   USING (get_user_role(auth.uid()) IN ('admin', 'instructor'));
 
 -- ============================================================
@@ -251,12 +366,10 @@ CREATE POLICY "Staff can view all registrations"
 -- COMMENTS
 -- ============================================================
 
--- Members can view comments on accessible content
 CREATE POLICY "Members can view comments"
   ON comments FOR SELECT
   USING (has_active_membership(auth.uid()));
 
--- Members can create comments
 CREATE POLICY "Members can create comments"
   ON comments FOR INSERT
   WITH CHECK (
@@ -264,12 +377,10 @@ CREATE POLICY "Members can create comments"
     AND has_active_membership(auth.uid())
   );
 
--- Users can update their own comments
 CREATE POLICY "Users can update own comments"
   ON comments FOR UPDATE
   USING (auth.uid() = user_id);
 
--- Users can delete their own comments; staff can delete any
 CREATE POLICY "Users can delete own comments"
   ON comments FOR DELETE
   USING (
@@ -281,30 +392,60 @@ CREATE POLICY "Users can delete own comments"
 -- NOTES (private — only owner can access)
 -- ============================================================
 
-CREATE POLICY "Users can manage own notes"
-  ON notes FOR ALL
+CREATE POLICY "Users can view own notes"
+  ON notes FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own notes"
+  ON notes FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own notes"
+  ON notes FOR UPDATE
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own notes"
+  ON notes FOR DELETE
   USING (auth.uid() = user_id);
 
 -- ============================================================
 -- BOOKMARKS (private — only owner can access)
 -- ============================================================
 
-CREATE POLICY "Users can manage own bookmarks"
-  ON bookmarks FOR ALL
+CREATE POLICY "Users can view own bookmarks"
+  ON bookmarks FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own bookmarks"
+  ON bookmarks FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own bookmarks"
+  ON bookmarks FOR DELETE
   USING (auth.uid() = user_id);
 
 -- ============================================================
 -- PRACTICE POSTS
 -- ============================================================
 
--- All authenticated users can view published practice posts
 CREATE POLICY "Authenticated users can view practice posts"
   ON practice_posts FOR SELECT
   USING (published = TRUE AND auth.uid() IS NOT NULL);
 
--- Staff can manage practice posts
-CREATE POLICY "Staff can manage practice posts"
-  ON practice_posts FOR ALL
+CREATE POLICY "Staff can view all practice posts"
+  ON practice_posts FOR SELECT
+  USING (get_user_role(auth.uid()) IN ('admin', 'instructor'));
+
+CREATE POLICY "Staff can insert practice posts"
+  ON practice_posts FOR INSERT
+  WITH CHECK (get_user_role(auth.uid()) IN ('admin', 'instructor'));
+
+CREATE POLICY "Staff can update practice posts"
+  ON practice_posts FOR UPDATE
+  USING (get_user_role(auth.uid()) IN ('admin', 'instructor'));
+
+CREATE POLICY "Staff can delete practice posts"
+  ON practice_posts FOR DELETE
   USING (get_user_role(auth.uid()) IN ('admin', 'instructor'));
 
 -- ============================================================
@@ -315,6 +456,26 @@ CREATE POLICY "Anyone can view instructors"
   ON instructors FOR SELECT
   USING (TRUE);
 
-CREATE POLICY "Admins can manage instructors"
-  ON instructors FOR ALL
+CREATE POLICY "Admins can insert instructors"
+  ON instructors FOR INSERT
+  WITH CHECK (get_user_role(auth.uid()) = 'admin');
+
+CREATE POLICY "Admins can update instructors"
+  ON instructors FOR UPDATE
+  USING (get_user_role(auth.uid()) = 'admin');
+
+CREATE POLICY "Admins can delete instructors"
+  ON instructors FOR DELETE
+  USING (get_user_role(auth.uid()) = 'admin');
+
+-- ============================================================
+-- PAYMENTS (admin only + user can view own)
+-- ============================================================
+
+CREATE POLICY "Users can view own payments"
+  ON payments FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Admins can view all payments"
+  ON payments FOR SELECT
   USING (get_user_role(auth.uid()) = 'admin');

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createServerClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { MemberShell } from "@/components/layout/member-shell";
 
 export default async function MemberLayout({
@@ -16,5 +17,18 @@ export default async function MemberLayout({
     redirect("/login");
   }
 
-  return <MemberShell user={user}>{children}</MemberShell>;
+  // Use admin client to bypass RLS for role check
+  const adminClient = createAdminClient();
+  const { data: roles } = await adminClient
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", user.id);
+
+  const userRole = (roles?.[0] as { role: string } | undefined)?.role || "trial";
+
+  return (
+    <MemberShell user={user} role={userRole}>
+      {children}
+    </MemberShell>
+  );
 }
